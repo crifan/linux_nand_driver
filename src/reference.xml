@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<bibliography
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns:db="http://docbook.org/ns/docbook"
+    
+    xml:id="reference">
+
+<bibliomixed id="ref.nand_brief_intro">
+  <abbrev>Brief Intro of Nand Flash</abbrev>
+  <bibliosource><link xl:href="http://www.crifan.com/brief_intro_of_nand_flash/">Brief Intro of Nand Flash</link></bibliosource>
+  <author>gleixner</author>
+</bibliomixed>
+
+<bibliomixed id="ref.4K_SLC_nand_datasheet">
+  <abbrev>samsung 4K pagesize SLC Nand Flash K9F8G08U0M datasheet + 推荐一个datasheet搜索的网站</abbrev>
+  <bibliosource><link xl:href="http://www.crifan.com/samsung_4k_pagesize_slc_nand_flash_k9f8g08u0m_datasheet__recommend_a_datasheet_search_site/">samsung 4K pagesize SLC Nand Flash K9F8G08U0M datasheet + 推荐一个datasheet搜索的网站</link></bibliosource>
+  <author>Crifan Li</author>
+</bibliomixed>
+
+<bibliomixed id="ref.nand_read_op">
+  <abbrev>nand falsh read operation</abbrev>
+  <bibliosource><link xl:href="http://www.crifan.com/nand_falsh_read_operation/">nand falsh read operation</link></bibliosource>
+  <author>Atsushi Inoue, Doug Wong</author>
+</bibliomixed>
+
+<bibliomixed id="ref.linux_mtd">
+  <abbrev>Memory Technology Device (MTD) Subsystem for Linux</abbrev>
+  <bibliosource><link xl:href="http://www.linux-mtd.infradead.org/index.html">Memory Technology Device (MTD) Subsystem for Linux</link></bibliosource>
+  <author>dedekind</author>
+</bibliomixed>
+
+<bibliomixed id="ref.micron_nand_nor_flash">
+  <abbrev>NOR | NAND Flash Guide: Selecting a Flash Storage Solution</abbrev>
+  <bibliosource><link xl:href="http://www.micron.com/~/media/Documents/Products/Product%20Flyer/NOR_NAND_Flash_Guide_lo.pdf">NOR | NAND Flash Guide: Selecting a Flash Storage Solution</link></bibliosource>
+  <author>micron</author>
+</bibliomixed>
+
+<bibliomixed id="ref.nand_nor_cmp">
+  <abbrev>NAND和NOR的比较</abbrev>
+  <bibliosource><link xl:href="http://www.crifan.com/comparison_of_nand_and_nor/">NAND和NOR的比较</link></bibliosource>
+  <author>来源于网络</author>
+</bibliomixed>
+
+<bibliomixed id="ref.mtd_and_flash_1">
+  <abbrev>MTD原始设备与FLASH硬件驱动的对话</abbrev>
+  <bibliosource><link xl:href="http://www.cnitblog.com/luofuchong/archive/2007/08/31/32682.html">MTD原始设备与FLASH硬件驱动的对话</link></bibliosource>
+  <author>luofuchong</author>
+</bibliomixed>
+
+<bibliomixed id="ref.mtd_and_flash_2">
+  <abbrev>MTD原始设备与FLASH硬件驱动的对话-续</abbrev>
+  <bibliosource><link xl:href="http://www.cnitblog.com/luofuchong/archive/2007/09/04/32939.html">MTD原始设备与FLASH硬件驱动的对话-续</link></bibliosource>
+  <author>luofuchong</author>
+</bibliomixed>
+
+<bibliomixed id="ref.nand_not_suite_xip">
+  <abbrev>【整理】Nand Flash为何不适合做XIP(eXecute In Place)</abbrev>
+  <bibliosource><link xl:href="http://www.crifan.com/order_is_not_suitable_for_nand_flash_why_do_xip_execute_in_place/">【整理】Nand Flash为何不适合做XIP(eXecute In Place)</link></bibliosource>
+  <author>Crifan</author>
+</bibliomixed>
+
+<bibliomixed id="ref.onfi_site">
+  <abbrev>ONFI官网</abbrev>
+  <bibliosource><link xl:href="http://onfi.org/specifications/">ONFI官网</link></bibliosource>
+  <author>ONFI</author>
+</bibliomixed>
+
+<bibliomixed id="ref.onfi_2.2_spec">
+  <abbrev>ONFI 2.2的Spec</abbrev>
+  <bibliosource><link xl:href="http://onfi.org/wp-content/uploads/2009/02/ONFI%202_2%20Gold.pdf">ONFI 2.2的Spec</link></bibliosource>
+  <author>ONFI</author>
+</bibliomixed>
+
+<bibliomixed id="ref.onfi_ba_nand">
+  <abbrev>ONFI Block Abstracted Nand的Spec</abbrev>
+  <bibliosource><link xl:href="http://onfi.org/wp-content/uploads/2009/02/BA_NAND_rev_1_1_Gold.pdf">ONFI Block Abstracted Nand的Spec</link></bibliosource>
+  <author>ONFI</author>
+</bibliomixed>
+
+<bibliomixed id="ref.lba_nand">
+  <abbrev>LBA Nand Flash的简介</abbrev>
+  <bibliosource><link xl:href="http://www.toshiba-components.com/prpdf/5678E.pdf">LBA Nand Flash的简介</link></bibliosource>
+  <author>Toshiba</author>
+</bibliomixed>
+
+<bibliomixed id="ref.toshiba_th58ns512dc">
+  <abbrev>Toshiba TH58NS512DC</abbrev>
+  <bibliosource><link xl:href="http://datasheet.elcodis.com/pdf/11/23/112371/th58ns512dc-to51y.pdf">Toshiba TH58NS512DC</link></bibliosource>
+  <author>Toshiba</author>
+</bibliomixed>
+
+<bibliomixed id="ref.samsung_k9f5608u0b">
+  <abbrev>Samsung K9F5608U0B</abbrev>
+  <bibliosource><link xl:href="http://hitmen.c02.at/files/docs/psp/ds_k9f5608u0b_rev13.pdf">Samsung K9F5608U0B</link></bibliosource>
+  <author>Samsung</author>
+</bibliomixed>
+
+<bibliomixed id="ref.lba_vs_onfi">
+  <abbrev>NAND接口规格之争 东芝三星LBA将对抗英特尔ONFI</abbrev>
+  <bibliosource><link xl:href="http://stor-age.zdnet.com.cn/stor-age/2007/0704/416025.shtml">NAND接口规格之争 东芝三星LBA将对抗英特尔ONFI</link></bibliosource>
+  <author>来源于网络</author>
+</bibliomixed>
+
+<bibliomixed id="ref.lba_core_c">
+  <abbrev>lba-core.c</abbrev>
+  <bibliosource><link xl:href="http://linux-fsl-imx51.sourcearchive.com/documentation/2.6.31-605.7/lba-core_8c-source.html">lba-core.c</link></bibliosource>
+  <author>来源于网络</author>
+</bibliomixed>
+
+<bibliomixed id="ref.4bit_bch_src">
+  <abbrev>【下载】4 bits纠错的BCH源代码（常用于MLC nand Flash的ECC算法）</abbrev>
+  <bibliosource><link xl:href="http://www.crifan.com/download_4_bits_of_bch_error_correction_code_commonly_used_in_the_ecc_algorithm_mlc_nand_flash/">【下载】4 bits纠错的BCH源代码（常用于MLC nand Flash的ECC算法）</link></bibliosource>
+  <author>Crifan</author>
+</bibliomixed>
+
+<bibliomixed id="ref.nand_bit_reverse">
+  <abbrev>【整理】Nand Flash的位反转 位翻转现象</abbrev>
+  <bibliosource><link xl:href="http://www.crifan.com/order_nand_flash_bit-reversed_bit_flipped/">【整理】Nand Flash的位反转 位翻转现象</link></bibliosource>
+  <author>Crifan</author>
+</bibliomixed>
+
+</bibliography>

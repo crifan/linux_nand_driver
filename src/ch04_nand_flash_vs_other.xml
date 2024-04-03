@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE chapter
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<chapter
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns:db="http://docbook.org/ns/docbook"
+    
+    xml:id="ch04_nand_flash_vs_other">
+<title>Nand Flash和其他一些东西的对比</title>
+<abstract></abstract>
+
+<para>此处将Nand Flash和其他一些常见的其他东西，进行对比。</para>
+
+<sect1 xml:id="nand_flash_vs_nor_flash"><title>Nand Flash和Nor Flash的区别</title>
+    <para>TODO：整理<link xl:href="http://www.crifan.com/summary_nand_flash_vs_nor_flash_interal_structure_application_performance_driver_support/">【整理】详解Nand Flash和Nor Flash的区别：内部结构，应用领域，性能，驱动支持等</link></para>
+    <para>Nor flash，有类似于dram之类的地址总线，因此可以直接和CPU相连，</para>
+    <para>CPU可以直接通过地址总线对nor flash进行访问，而Nand Flash没有这类的总线，只有IO接口，只能通过IO接口发送命令和地址，对Nand Flash内部数据进行访问。</para>
+    <para>相比之下，nor flash就像是并行访问，Nand Flash就是串行访问，所以相对来说，前者的速度更快些。</para>
+    <para>但是由于物理制程/制造方面的原因，导致nor 和nand在一些具体操作方面的特性不同：</para>
+    <table id="tbl.nand_vs_nor"><title>Nand Flash和Nor Flash的区别</title>
+        <tgroup cols="4">
+            <thead>
+                <row><entry> </entry><entry>NOR</entry><entry>NAND</entry><entry>备注</entry></row>
+            </thead>
+            <tbody>
+                <row><entry>接口</entry><entry>总线</entry><entry>I/O接口</entry><entry>这个是两者物理结构上的最大区别</entry></row>
+                <row><entry>单个cell大小</entry><entry>大</entry><entry>小</entry><entry> </entry></row>
+                <row><entry>单个Cell成本</entry><entry>高</entry><entry>低</entry><entry> </entry></row>
+                <row><entry>读耗时</entry><entry>快</entry><entry>慢</entry><entry> </entry></row>
+                <row><entry>单字节的编程时间</entry><entry>快</entry><entry>慢</entry><entry> </entry></row>
+                <row><entry>多字节的编程时间</entry><entry>慢</entry><entry>快</entry><entry> </entry></row>
+                <row><entry>擦除时间</entry><entry>慢</entry><entry>快</entry><entry> </entry></row>
+                <row><entry>功耗</entry><entry>高</entry><entry>低，但是需要额外的RAM</entry><entry> </entry></row>
+                <row><entry>是否可以执行代码</entry><entry>是</entry><entry>不行, 但是一些新的芯片，可以在第一页之外执行一些小的loader</entry><entry>即是否允许芯片内执行(XIP, eXecute In Place) <xref linkend="ref.nand_not_suite_xip"></xref></entry></row>
+                <row><entry>位反转(Bit twiddling/bit flip)<xref linkend="ref.nand_bit_reverse"></xref></entry><entry>几乎无限制</entry><entry>1-4次，也称作 “部分页编程限制”</entry><entry>也就是数据错误，0&rarr;1或1&rarr;0</entry></row>
+                <row><entry>在芯片出厂时候是否允许坏块</entry><entry>不允许</entry><entry>允许</entry><entry> </entry></row>
+            </tbody>
+        </tgroup>
+    </table>
+</sect1>
+
+<sect1 xml:id="raw_nand_flash_vs_other_packing"><title>原始的Nand Flash和其他基于Nand Flash封装后的东西的对比</title>
+    <para>Flash，此处指的是物理上的存储介质，即所谓raw flash</para>
+    <para>而嵌入式开发期间，所最常用的是，raw nand flash + nand flash controller，即Flash芯片加上对应的开发板上面的Flash的控制器，去操作Flash的。</para>
+    <para>比如自己之前所用过的AS3525的SoC中就有Nand Flash的Controller，就是配合Raw的Nand Flash去使用的。</para>
+    <para>而在raw flash之外，加上一些其他接口或者控制器，就变成了其他的东西了，即其他很多东西，就是在raw flash基础上封装出来的：</para>
+    <itemizedlist>
+        <listitem>LBA Nand Flash = LBA控制器 + raw flash
+            <para>LBA控制器，主要实现了逻辑地址到物理地址的转换</para>
+            <para>加上其他的，负载平衡等功能</para>
+            <para>使得你可以像使用其他普通的存储设备，比如硬盘那样，直接去访问nand flash，而无需操心虚实地址的转换，负载平衡等烦人的事情。</para>
+            <para></para>
+        </listitem>
+        <listitem>eMMC=MMC的接口 + raw flash
+            <para>把eMMC叫做Managed NAND的确更合适</para>
+            <para>是以eMMC的接口，内部存储数据的介质，用的就是flash</para>
+            <para>eMMC的存储卡的存储容量大小，目前有2GB–64GB</para>
+        </listitem>
+        <listitem>eUSB=USB的接口 + raw flash
+            <para>与eMMC类似的另外一种接口叫做：eUSB</para>
+            <para>是USB的接口，内部存储数据的介质，也是用的flash</para>
+            <para>eUSB的存储卡的存储容量大小，目前有2GB–16GB</para>
+        </listitem>
+        <listitem>SSD==SSD控制器 + raw flash
+            <para>SSD，也是在普通的flash的基础上，加上了对应的控制器。</para>
+            <para>因此，SSD的性能，除了取决于内部所用的Flash的类型（是SLC还是MLC）、flash的本身性能之外，还和SSD控制器本身对于flash的管理的好坏有关系。</para>
+            <para></para>
+        </listitem>
+        <listitem>U盘
+            <para>U盘，是USB的接口，内部用于存储数据的，是flash。</para>
+            <para>因此，你才会看到，你的手机的内存存储，其实就是USB接口的Flash存储设备。</para>
+            <para>与内部存储对应的外部存储，往往是，TF接口的卡，即TF卡，其内部也是用Flash存储数据的。</para>
+        </listitem>
+    </itemizedlist>
+    <para></para>
+</sect1>
+
+<sect1 xml:id="nand_flash_vs_eepom"><title>Nand Flash和EEPROM的区别</title>
+    <para>整理EEPROM，Flash的区别</para>
+    <para>以及Nand Flash和Nor Flash的区别</para>
+    <para>其中，关于EEPROM和Flash</para>
+    <para>这个帖子<link xl:href="http://www.differencebetween.net/technology/hardware-technology/difference-between-eeprom-and-flash/">Difference Between EEPROM and Flash</link>解释的很清楚。</para>
+    <para></para>
+    <para></para>
+    <para></para>
+    <para></para>
+</sect1>
+
+</chapter>

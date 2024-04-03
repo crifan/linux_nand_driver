@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE chapter
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<chapter
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns:db="http://docbook.org/ns/docbook"
+    
+    xml:id="ch03_related_materials">
+<title>和Nand Flash相关的一些资料</title>
+<abstract></abstract>
+
+<para>此处记录一些和Nand Flash相关的一些资料：</para>
+
+<sect1 xml:id="nand_flash_id_naming_rule"><title>Nand Flash的型号/Part Number/Id的命名规则</title>
+    <para>对于Nand Flash，目前市场上可以看到很多家的Nand Flash的芯片，每家都有各自的型号，即对应的id或part number。</para>
+    <para>此处整理记录一下，各个厂家的Nand Flash的命名规则。</para>
+    <para></para>    
+    
+    <sect2 xml:id="samsung_nand_flash_naming_rule"><title>三星(Samsung)的Nand Flash芯片的命名规则</title>
+        <para>已整理至：<link xl:href="http://www.crifan.com/samsung_nand_flash_chip_id_part_number_naming_rule_use_k9gag08u0m_as_example/">Samsung的Nand Flash的ID命名规则，即从芯片型号(Part Number)读懂芯片详细信息 + 举例K9GAG08U0M说明</link></para>
+        <para>有空再整理至此。</para>
+    </sect2>
+
+    <sect2 xml:id="micron_nand_flash_naming_rule"><title>美光(Micron)的Nand Flash芯片的命名规则</title>
+        <para>待整理。</para>
+    </sect2>
+
+    <sect2 xml:id="hynix_nand_flash_naming_rule"><title>海力士(Hynix)的Nand Flash芯片的命名规则</title>
+        <para>待整理。</para>
+    </sect2>
+</sect1>
+
+</chapter>

@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<glossary
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns:db="http://docbook.org/ns/docbook"
+    
+    xml:id="glossary">
+<title>缩略词</title>
+<para>常用缩略词如下：</para>
+
+<glossdiv><title>B</title>
+    <glossentry><glossterm>BBM</glossterm>
+        <acronym>BBM</acronym>
+        <glossdef>
+          <para>Bad Block Management</para>
+          <para>坏块管理</para>
+          <glossseealso otherterm="BBT">BBT</glossseealso>
+        </glossdef>
+    </glossentry>
+    <glossentry id="BBT"><glossterm>BBT</glossterm>
+        <acronym>BBT</acronym>
+        <glossdef>
+          <para>Bad Block Table</para>
+          <para>坏块表</para>
+        </glossdef>
+    </glossentry>
+</glossdiv>
+
+<glossdiv><title>E</title>
+    <glossentry><glossterm>ECC</glossterm>
+        <acronym>ECC</acronym>
+        <glossdef>
+          <para>Error Correction Code</para>
+          <para>错误校验码</para>
+        </glossdef>
+    </glossentry>
+    
+    <glossentry><glossterm>E<superscript>2</superscript>PROM</glossterm>
+        <glosssee otherterm="EEPROM"/>
+    </glossentry>
+
+    <glossentry id="EEPROM"><glossterm>EEPROM</glossterm>
+        <acronym>EEPROM</acronym>
+        <glossdef>
+          <para>Electrically Erasable Programmable Read-Only Memory</para>
+          <para>电可擦只读存储器</para>
+        </glossdef>
+    </glossentry>
+
+</glossdiv>
+
+<glossdiv><title>M</title>
+    <glossentry id="MLC"><glossterm>MLC</glossterm>
+        <acronym>MLC</acronym>
+        <glossdef>
+          <para>Multi Level Cell</para>
+          <para>多层单元</para>
+          <glossseealso otherterm="SLC">SLC</glossseealso>
+        </glossdef>
+    </glossentry>
+    <glossentry><glossterm>MOSFET</glossterm>
+        <acronym>MOSFET</acronym>
+        <glossdef>
+          <para>Metal-Oxide–Semiconductor Field Effect Transistor</para>
+          <para>金属氧化物半导体场效应晶体管</para>
+        </glossdef>
+    </glossentry>
+    <glossentry><glossterm>MTD</glossterm>
+        <acronym>MTD</acronym>
+        <glossdef>
+          <para>Memory Technology Device</para>
+          <para>内存技术设备</para>
+        </glossdef>
+    </glossentry>
+</glossdiv>
+
+<glossdiv><title>N</title>
+    <glossentry><glossterm>NVM</glossterm>
+        <acronym>NVM</acronym>
+        <glossdef>
+          <para>Non-Volatile Memory</para>
+        </glossdef>
+    </glossentry>
+
+    <glossentry><glossterm>NDA</glossterm>
+        <acronym>NDA</acronym>
+        <glossdef>
+          <para>None-Disclosure Agreement</para>
+          <para>非公开协议，保密协议</para>
+        </glossdef>
+    </glossentry>
+</glossdiv>
+
+<glossdiv><title>O</title>
+    <glossentry><glossterm>OTP</glossterm>
+        <acronym>OTP</acronym>
+        <glossdef>
+          <para>One Time Programmable</para>
+          <para>一次性可编程（存储器）</para>
+        </glossdef>
+    </glossentry>
+</glossdiv>
+
+<glossdiv><title>S</title>
+    <glossentry id="SLC"><glossterm>SLC</glossterm>
+        <acronym>SLC</acronym>
+        <glossdef>
+          <para>Single Level Cell</para>
+          <para>单层单元，单层式存储</para>
+          <glossseealso otherterm="MLC">MLC</glossseealso>
+        </glossdef>
+    </glossentry>
+</glossdiv>
+
+</glossary>

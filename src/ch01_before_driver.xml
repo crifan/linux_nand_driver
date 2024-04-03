@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE chapter
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<chapter
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    
+    xml:id="ch01_before_driver">
+<title>编写驱动之前要了解的知识</title>
+<abstract></abstract>
+
+<sect1 xml:id="related_term"><title>一些相关的名词的解释</title>
+    <sect2><title>Non-Volatile Memory非易失性存储器</title>
+        <para><glossterm baseform="NVM">NVM</glossterm>，即NV （RAM）Memory，断电数据也不会丢失的存储器，比如Nand Flash，Nor Flash，硬盘等等。于此相对的是，断电了数据会丢失的存储器，比如DRAM等。</para>
+    </sect2>
+
+    <sect2><title>OTP一次性可编程存储器</title>
+        <para><acronym>OTP</acronym>，一种非易失性存储器，但是只允许一次性写入数据，写入（或称烧写）数据之后，就不能修改了。</para>
+        <para>OTP的好处或者说用途是，常用于写入一些和芯片相关的一些特定数据，用于加密的一些数据等。</para>
+        <para>与一次性写入数据的OTP相对应的是，像Nand Flash，硬盘等存储器，可以被多次写入数据。只要硬盘这类的存储器没坏，你高兴写入几次就写入几次，而OTP就只能写入一次，就没法再修改里面的数据了。</para>
+    </sect2>
+    
+    <sect2><title>NDA 保密协议</title>
+        <para><abbrev>NDA</abbrev>，中文可以翻译为，非公开协议，保密协议。</para>
+        <para>说白了，还是一种协议，常用于这种情况：</para>
+        <para>某家厂商的某种技术或资料，是保密的，不希望公开的。</para>
+        <para>但是呢，如果你要用他家的芯片啊之类的东西，在开发过程中，又必须得到对应的技术和资料，才能开发产品，所以，他就会要求和你签订这样的NDA协议，意思就是，你可以用我的技术和资料，但是你不能公开给（我未授权的）其他人。如果非法泄露我的机密技术，那我肯定要走法律程序控告你，之类的。</para>
+    </sect2>
+
+    <sect2><title>Datasheet数据手册和Specification规范</title>
+        <para>英文datasheet，中文一般翻译为数据手册。</para>
+        <para>指的是对应某个硬件，多为芯片，的功能说明，定义了如何操作该硬件，达到你要的功能，这其中主要包括芯片中的相关寄存器的定义，如何发送命令，发送什么命令，以此来操作此硬件等等。</para>
+        <para>而英文Specification，引文常缩写为Spec.，中文一般翻译为规范。</para>
+        <para>多指某个组织（盈利的或非盈利的），定义了一些规矩，如果你要用某种东西，在计算机领域，常常指的是某硬件和相关的软件协议，就要按照此规矩来操作，人家这个组织呢，保证你只要实现了此规范，设备就能按照你所期望的运行，能够实现对应的功能，而你的芯片实现了此规范，就叫做，是和此规范兼容（compatible）的。</para>
+    </sect2>
+
+    <sect2><title>Nand Flash相关的一些名词解释</title>
+        <sect3><title>（Bad） Block Management（坏）块管理</title>
+            <para>Nand Flash由于其物理特性，只有有限的擦写次数，超过那个次数，基本上就是坏了。在使用过程中，有些Nand Flash的block会出现被用坏了，当发现了，要及时将此block标注为坏块，不再使用。</para>
+            <para>于此相关的管理工作，属于Nand Flash的坏块管理的一部分工作。</para>
+        </sect3>
+        
+        <sect3><title>Wear-Leveling负载平衡</title>
+            <para>Nand Flash的block的管理，还包括负载平衡。</para>
+            <para>正是由于Nand Flash的block，都是有一定寿命限制的，所以如果你每次都往同一个block擦除然后写入数据，那么那个block就很容易被用坏了，所以我们要去管理一下，将这么多次的对同一个block的操作，平均分布到其他一些block上面，使得在block的使用上，相对较平均，这样相对来说，可以更能充分利用Nand Flash。</para>
+            <para>关于wear-leveling这个词，再简单解释一下，wear就是穿（衣服）等，用（东西）导致磨损，而leveling就是使得均衡，所以放在一起就是，使得对于Nand Flash的那么多的block的使用磨损，相对均衡一些，以此延长Nand Flash的使用寿命或者说更加充分利用Nand Flash。</para>
+        </sect3>
+        
+        <sect3><title>ECC错误校验码</title>
+            <para>Nand Flash物理特性上使得其数据读写过程中会发生一定几率的错误，所以要有个对应的错误检测和纠正的机制，于是才有此ECC，用于数据错误的检测与纠正。Nand Flash的ECC，常见的算法有海明码和BCH，这类算法的实现，可以是软件也可以是硬件。不同系统，根据自己的需求，采用对应的软件或者是硬件。</para>
+            <para>相对来说，硬件实现这类ECC算法，肯定要比软件速度要快，但是多加了对应的硬件部分，所以成本相对要高些。如果系统对于性能要求不是很高，那么可以采用软件实现这类ECC算法，但是由于增加了数据读取和写入前后要做的数据错误检测和纠错，所以性能相对要降低一些，即Nand Flash的读取和写入速度相对会有所影响。</para>
+            <para>其中，Linux中的软件实现ECC算法，即NAND_ECC_SOFT模式，就是用的对应的海明码。</para>
+            <para>而对于目前常见的MLC的Nand Flash来说，由于容量比较大，动辄2GB，4GB，8GB等，常用BCH算法。BCH算法，相对来说，算法比较复杂。</para>
+            <para>笔者由于水平有限，目前仍未完全搞懂BCH算法的原理。</para>
+            <para>BCH算法，通常是由对应的Nand Flash的Controller中，包含对应的硬件BCH ECC模块，实现了BCH算法，而作为软件方面，需要在读取数据后，写入数据之前，分别操作对应BCH相关的寄存器，设置成BCH模式，然后读取对应的BCH状态寄存器，得知是否有错误，和生成的BCH校验码，用于写入。</para>
+            <para>其具体代码是如何操作这些寄存器的，由于是和具体的硬件，具体的nand flash的controller不同而不同，无法用同一的代码。如果你是nand flash驱动开发者，自然会得到对应的起nand flash的controller部分的datasheet，按照手册说明，去操作即可。</para>
+            <para>不过，额外说明一下的是，关于BCH算法，往往是要从专门的做软件算法的厂家购买的，但是Micron之前在网上放出一个免费版本的BCH算法。</para>
+            <para>想要此免费的BCH算法，可以在<xref linkend="ref.4bit_bch_src"></xref>找到下载地址</para>
+        </sect3>
+    </sect2>
+</sect1>
+
+<xi:include href="ch01s2_hardware_related.xml" />
+<xi:include href="ch01s3_software_related.xml" />
+
+</chapter>

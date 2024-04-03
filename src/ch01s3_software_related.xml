@@ -1,0 +1,610 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE sect1
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<sect1
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns:db="http://docbook.org/ns/docbook"
+    
+    xml:id="software_related">
+<title>软件方面</title>
+
+<para>如果想要在Linux下编写Nand Flash驱动，那么就先要搞清楚Linux下，关于此部分的整个框架。弄明白，系统是如何管理你的Nand Flash的，以及，系统都帮你做了那些准备工作，而剩下的，驱动底层实现部分，你要去实现哪些功能，才能使得硬件正常工作起来。</para>
+
+<sect2 xml:id="spec_onfi_lba"><title>Nand Flash相关规范 – ONFI和LBA</title>
+    <para>在介绍Nand Flash的软件细节方面之前，先来介绍一下Nand Flash的两个相关的规范：ONFI和LBA。</para>
+    
+    <sect3><title>ONFI是什么</title>
+        <para>ONFI规范，即Open Nand Flash Interface specification。</para>
+        <para>ONFI是Intel主导的，其他一些厂家（Hynix，Micron，Numonyx，Phison ，SanDisk，Sony，Spansion等）参与制定的，统一了Nand Flash的操作接口。</para>
+        <para>所谓操作接口，就是那些对Nand Flash操作的命令等内容。</para>
+        <para>而所谓统一，意思是之前那些Nand Flash的操作命令等，都是各自为政，虽然大多数常见的Nand Flash的操作，比如page read的命令是0x00,0x30，page write的命令是0x80,0x10等，但是有些命令相关的内容，很特别且很重要的一个例子就是，每个厂家的Nand Flash的read id的命令，虽然都是0x90，但是读取出来的几个字节的含义，每个厂家定义的都不太一样。</para>
+        <para>因此，才有统一Nand Flash的操作接口这一说。</para>
+        <para>ONFI规范，官网可以下载的到：</para>
+        <para>http://onfi.org/specifications/</para>
+        <para>比如：</para>
+        <para>ONFI 2.2 Spec</para>
+        <para>http://onfi.org/wp-content/uploads/2009/02/ONFI%202_2%20Gold.pdf</para>
+        <para>ONFI规范中定义的Nand Flash的命令集合为：</para>
+        <figure><title>ONFI中的Nand Flash的命令集合</title>
+            <mediaobject>
+                <imageobject role="html">
+                    <imagedata fileref="images/onfi_nand_cmd_set.png" align="left" scalefit="0" width="100%" />
+                </imageobject>
+                <imageobject role="fo">
+                    <imagedata fileref="images/onfi_nand_cmd_set.png" align="center" scalefit="1" width="100%"/>
+                </imageobject>
+            </mediaobject>
+        </figure>
+        <para>可以看到，其中常见的一些命令，比如
+            <orderedlist>
+                <listitem>page read（0x00,0x30）</listitem>
+                <listitem>page write（0x80,0x10）</listitem>
+                <listitem>block erase（0x60,0xD0）</listitem>
+                <listitem>Reset（0xFF）</listitem>
+            </orderedlist>
+            等等命令，都是和普通的Nand Flash的命令是一样的，而额外多出一些命令，比如Read Unique ID（0xED）等命令，是之前某些Nand Flash命令所不具有的。
+        </para>
+        <para>如此，定义了Nand Flash的操作的命令的集合以及发送对应命令所遵循的时序等内容。</para>
+        
+        <sect4><title>ONFI Block Abstracted NAND</title>
+            <para>ONFI还定义了另外一个规范：</para>
+            <para>ONFI Block Abstracted Nand Specification</para>
+            <para>http://onfi.org/wp-content/uploads/2009/02/BA_NAND_rev_1_1_Gold.pdf</para>
+            <para>即ONFI LBA Nand，简单说就是，逻辑块寻址的Nand。其含义和Toshiba的LBA，基本没有太多区别。</para>
+        </sect4>
+        
+        <sect4><title>ONFI的好处</title>
+            <para>ONFI规范定义了之后，每家厂商的Nand Flash，只要符合这个ONFI规范，然后上层Nand Flash的软件，就可以统一只用一种了，换句话说，我写了一份Nand Flash的驱动后，就可以操作所有和ONFI兼容的Nand Flash了，整个Nand Flash的兼容性，上层软件的兼容性，互操作性，就大大提高了。</para>
+            <para>而且，同样的，由于任何规范在定义的时候，都会考虑到兼容性和扩展性，ONFI也不例外。针对符合ONFI规范的，写好的软件，除了可以操作多家与ONFI兼容的Nand Flash之外，而对于以后出现的新的技术，新制程的Nand Flash，只要符合ONFI规范，也同样可以支持，可以在旧的软件下工作，而不需要由于Nand Flash的更新换代，而更改上层软件和驱动，这个优势，由于对于将Nand Flash芯片集成到自己系统中的相关开发人员来说，是个好消息。</para>
+        </sect4>
+    </sect3>
+    
+    <sect3><title>LBA规范是什么</title>
+        <para>LBA Nand Flash，Logical Block Address，逻辑块寻址的Nand Flash，是Nand Flash大厂之一的Toshiba，自己独立设计出来的新一代的Nand Flash的规范。</para>
+        <para>之所以叫做逻辑块寻址，是相对于之前常见的，普通的Nand Flash的物理块的寻址来说的。常见的Nand Flash，如果要读取和写入数据，所用的对应的地址是对应的：block地址+block内的Page地址+Page内的偏移量 = 绝对的物理地址，</para>
+        <para>此物理块寻址，相对来说有个缺点，那就是，由于之前提到的Nand Flash会出现使用过程中出现坏块，所以，遇到这样的坏块，首先坏块管理要去将此坏块标记，然后将坏块的数据拷贝到另一个好的block中，再继续访问新的block。</para>
+        <para>而且数据读写过程中，还要有对应的ECC校验，很多情况下，也都是软件来实现这部分的工作，即使是硬件的ECC校验，也要写少量的软件，去操作对应寄存器，读取ECC校验的结果，当然别忘了，还有对应的负载平衡等工作。</para>
+        <para>如此的这类的坏块管理工作，对于软件来说，很是繁重，而且整个系统实现起来也不是很容易，所以，才催生了一个想法，是否可以把ECC校验，负载平衡，坏块管理，全部都放到硬件实现上，而对于软件来说，我都不关心，只关心有多少个Block供我使用，用于数据读写。</para>
+        <para>针对于此需求，Toshiba推出了LBA逻辑块寻址的Nand Flash，在Nand Flash存储芯片之外，加了对应一个硬件控制权Controller，实现了上述的坏块管理，ECC校验，负载平衡等工作，这样使得人家想要用你LBA的Nand Flash的人，去开发对应的软件来驱动LBA Nand Flash工作，相对要做的事情，就少了很多，相对来说就是减轻了软件系统集成方面的工作，提高了开发效率，缩短了产品上市周期。</para>
+        <para>LBA Nand，最早放出对应的样片（sample）是在2006年8月。</para>
+        <para>网上找到一个LBA Nand Flash的简介：</para>
+        <para>http://www.toshiba-components.com/prpdf/5678E.pdf</para>
+        <para>现早已经量产，偶在之前开发过程中，就用过其某款LBA的Nand Flash。</para>
+        <para>目前网上还找不到免费的LBA的规范。除非你搞开发，和Toshiba签订NDA协议后，才可以拿到对应的specification。</para>
+        <para>关于Toshiba LBA Nand规范，在此多说一点（参考附录中：lba-core.c）：</para>
+        <para>LBA Nand分为PNP，VFP和MDP三种分区：</para>
+        <orderedlist>
+            <listitem>PNP主要用于存放Uboot等启动代码</listitem>
+            <listitem>VFP主要用于存放uImage等内核代码</listitem>
+            <listitem>MDP主要用于存放用户的数据，以及rootfs等内容</listitem>
+        </orderedlist>
+    </sect3>
+    
+    <sect3><title>为何会有ONFI和LBA</title>
+        <para>在解释为何会有ONFI和LBA之前，先来个背景介绍：</para>
+        <para>目前Nand Flash的厂家有Samsung，Toshiba，Intel， Hynix，Micron，Numonyx，Phison ，SanDisk，Sony，Spansion等。</para>
+        
+        <sect4><title>技术层面的解释</title>
+            <para>ONFI的出现，上面已经解释过了，就是为了统一Nand Flash的接口，使得软件兼容性更好；</para>
+            <para>而LBA的出现，是为了减轻软件方面对Nand Flash的各种管理工作。上面这些解释，其实只是技术上解释。</para>
+        </sect4>
+        
+        <sect4><title>现实层面的解释</title>
+            <para>而现实方面是，ONFI是Intel主导的，其他一些Nand Flash厂商参与制定出来的一套Nand Flash的规范，但是却没有得到Nand Flash的两个大厂家的认可，一个是以第一厂商自居samsung，另一个是Nand Flash技术引导者的Toshiba。所以，可以算是在Nand Flash领域里，老三带着一帮小的，定了一个规范，但是老大和老二却不买账。因此，技术上的Nand的老大Toshiba联手产量上的老大，自己去推出了另外一套规范LBA。</para>
+            <para>这可以称得上是典型的规范之争吧。</para>
+        </sect4>  
+    </sect3>
+    
+    <sect3><title>ONFI和LBA的区别和联系</title>
+        <para>总的来说，ONFI在对于旧的Nand Flash的兼容上，都是相对类似的。</para>
+        
+        <sect4><title>ONFI和LBA的区别</title>
+            <para>总的来说：</para>
+            <para>ONFI规范，更注重对于Nand Flash的操作接口方面的定义 + ONFI LBA Nand的定义，而Toshiba LBA规范，主要侧重于LBA的Nand的定义。</para>
+        </sect4>
+        
+        <sect4><title>ONFI和LBA的联系</title>
+            <para>ONFI Block Abstracted NAND Specification，基本上和Toshiba的LBA，没太多区别，只是Toshiba的LBA规范中，又多了些其他模式和应用类别。</para>
+            <para>总的来说，可以这么划分：</para>
+            <para>ONFI        = Nand Flash操作接口的统一 + ONFI的LBA Nand</para>
+            <para>Toshiba LBA = 等价于ONFI的LBA Nand     + 多种模式和对应的不同应用</para>
+        </sect4>
+    </sect3>
+</sect2>
+
+<sect2 xml:id="mtd_memory_technology_device"><title>内存技术设备，MTD（Memory Technology Device）</title>
+    <para>MTD，是Linux的存储设备中的一个子系统。其设计此系统的目的是，对于内存类的设备，提供一个抽象层，一个接口，使得对于硬件驱动设计者来说，可以尽量少的去关心存储格式，比如FTL，FFS2等，而只需要去提供最简单的底层硬件设备的读/写/擦除函数就可以了。而对于数据对于上层使用者来说是如何表示的，硬件驱动设计者可以不关心，而MTD存储设备子系统都帮你做好了。</para>
+    <para>对于MTD子系统的好处，简单解释就是，他帮助你实现了，很多对于以前或者其他系统来说，本来也是你驱动设计者要去实现的很多功能。换句话说，有了MTD，使得你设计Nand Flash的驱动，所要做的事情，要少很多很多，因为大部分工作，都由MTD帮你做好了。</para>
+    <para>当然，这个好处的一个“副作用”就是，使得我们不了解的人去理解整个Linux驱动架构，以及MTD，变得更加复杂。但是，总的说，觉得是利远远大于弊，否则，就不仅需要你理解，而且还是做更多的工作，实现更多的功能了。</para>
+    <para>此外，还有一个重要的原因，那就是，前面提到的Nand Flash和普通硬盘等设备的特殊性：</para>
+    <para>有限的通过出复用来实现输入输出命令和地址/数据等的IO接口，最小单位是页而不是常见的bit，写前需擦除等，导致了这类设备，不能像平常对待硬盘等操作一样去操作，只能采取一些特殊方法，这就诞生了MTD设备的统一抽象层。</para>
+    <para>MTD，将Nand Flash，nor flash和其他类型的flash等设备，统一抽象成MTD设备来管理，根据这些设备的特点，上层实现了常见的操作函数封装，底层具体的内部实现，就需要驱动设计者自己来实现了。具体的内部硬件设备的读/写/擦除函数，那就是你必须实现的了。</para>
+    
+    <table id="tbl.mtd_vs_hdd"><title>MTD设备和硬盘设备之间的区别</title>
+        <tgroup cols="2">
+            <colspec colnum="1" colname="col1" colwidth="1*"/>
+            <colspec colnum="2" colname="col2" colwidth="1*"/>
+            <thead>
+                <row><entry>HARD drives</entry><entry>MTD device</entry></row>
+            </thead>
+            <tbody>
+                <row><entry>连续的扇区</entry><entry>连续的可擦除块</entry></row>
+                <row><entry>扇区都很小(512B,1024B)</entry><entry>可擦除块比较大 (32KB,128KB)</entry></row>
+                <row><entry>主要通过两个操作对其维护操作：读扇区，写扇区</entry><entry>主要通过三个操作对其维护操作：从擦除块中读，写入擦除块，<emphasis>擦写可擦除块</emphasis></entry></row>
+                <row><entry>坏快被重新映射，并且被硬件隐藏起来了（至少是在如今常见的LBA硬盘设备中是如此）</entry><entry>坏的可擦除块没有被隐藏，软件中要处理对应的坏块问题</entry></row>
+                <row><entry>HDD扇区没有擦写寿命超出的问题</entry><entry>可擦除块是有擦除次数限制的，大概是10<superscript>4</superscript>-10<superscript>5</superscript>次</entry></row>
+            </tbody>
+        </tgroup>
+    </table>
+    <para>多说一句，关于MTD更多的内容，感兴趣的，去附录中的<link linkend="ref.linux_mtd">MTD主页</link>去看。</para>
+    <para>关于mtd设备驱动，感兴趣的可以去参考附录中MTD设备的文章，该文章是比较详细地介绍了整个MTD框架和流程，方便大家理解整个mtd框架和Nand Flash驱动。</para>
+    
+    <sect3><title>Linux MTD中检测不同类型Nand Flash的ID部分的代码</title>
+        <para>关于nand flash，由于各个厂家的read id读出的内容的定义，都不同，导致，对于读出的id，分别要用不同的解析方法，下面这段代码，是我之前写的，本来打算自己写信去推荐到Linux MTD内核源码的，不过后来由于没搞懂具体申请流程，就放弃了。不过，后来，看到Linux的MTD部分更新了，加了和下面类似的做法。</para>
+        <para>此处只是为了记录下来，也算给感兴趣的人一个参考吧。</para>
+        <para>
+            <para>文件：<filename>\linux-2.6.28.4\drivers\mtd\nand\nand_base.c</filename></para>
+            <programlisting language="c">
+<![CDATA[
+/*
+ * Get the flash and manufacturer id and lookup if the type is supported
+ */
+static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
+                          struct nand_chip *chip,
+                          int busw, int *maf_id)
+{
+... ...
+    chip->chipsize = (uint64_t)type->chipsize << 20;
+
+    /* 针对不同的MLC和SLC的nand flash，添加了不同的解析其ID的方法 */
+    /* Newer devices have all the information in additional id bytes */
+    if (!type->pagesize) {
+        int erase_bits, page_base, block_base, old_50nm, new_40nm;
+        uint8_t id3rd, id4th, id5th, id6th, id7th;
+
+        /* The 3rd id byte holds MLC / multichip data */
+        chip->cellinfo = id3rd = chip->read_byte(mtd);
+        /* The 4th id byte is the important one */
+        id4th = chip->read_byte(mtd);
+        id5th = chip->read_byte(mtd);
+        id6th = chip->read_byte(mtd);
+        id7th = chip->read_byte(mtd);
+        /* printk(KERN_INFO " (ID:%02x %02x %02x %02x %02x %02x %02x) ",
+            id1st, id2nd, id3rd, id4th, id5th, id6th, id7th); */
+
+        if (nand_is_mlc(chip->cellinfo)) {
+            /*
+             * MLC:
+             * 50nm has 5 bytes ID, further read ID will periodically output
+             * 40nm has 6 bytes ID
+             */
+
+            /*
+             * the 4th byte is not the same meaning for different manufature
+            */
+            if (NAND_MFR_SAMSUNG == *maf_id) {
+                /* samsung MLC chip has several type ID meanings:
+                (1)50nm serials, such as K9GAG08U0M
+                (2)40nm serials, such as K9LBG08UXD
+                */
+
+                /* old 50nm chip will periodically output if read further ID */
+                old_50nm = (id1st == id6th) && (id2nd == id7th);
+                /* is 40nm or newer */
+                new_40nm = id6th & 0x07;
+                if ((!old_50nm) && new_40nm) {
+                    /*
+                     * Samsang
+                     * follow algorithm accordding to datasheets of:
+                     * K9LBG08UXD_1.3 (40nm), 
+                     * ID(hex): EC D7 D5 29 38 41
+                     * this algorithm is suitable for new chip than 50nm
+                     * such as K9GAG08u0D, 
+                     * ID(hex): EC D5 94 29 B4 41
+                     */
+
+                    int bit236;
+
+                    /* Calc pagesize, bit0,bit1: page size */
+                    page_base = (1 << 11);  /* 2KB */
+                    mtd->writesize = page_base * (1 << (id4th & BIT01));
+                    block_base = (1 << 17); /* 128 KB */
+                    /* Calc block size, bit4,bit5,bit7: block size */
+                    erase_bits = (id4th >> 4) & BIT01; /* get bit4,bit5 */
+                    erase_bits |= (id4th >> 5) & BIT(2); /* get bit7 and combine them */
+                    mtd->erasesize = block_base * (1 << erase_bits);
+                    /* Calc oobsize, bit2,bit3,bit6: oob size */
+                    bit236 = (id4th >> 2) & BIT01; /* get bit2,bit3 */
+                    bit236 |= (id4th >> 4) & BIT(2); /* get bit6 and combine them */
+                    switch (bit236) {
+                    case 0x01:
+                        mtd->oobsize = 128;
+                        break;
+                    case 0x02:
+                        mtd->oobsize = 218;
+                        break;
+                    default:
+                        /* others reserved */
+                        break;
+                    }
+                }
+                else {
+                    /*
+                     * Samsang
+                     * follow algorithm accordding to datasheets of:
+                     * K9GAG08U0M (50nm)
+                     * this algorithm is suitable for old 50nm chip
+                     */
+
+                    goto slc_algorithm;
+                }
+            }
+            else if (NAND_MFR_TOSHIBA == *maf_id) {
+                /*
+                 * Toshiba
+                 * follow algorithm guess from ID of TC58NVG3D1DTG00:
+                 * Toshiba MLC TC58NVG3D1DTG00 1GB 8bit 1chip
+                 * 4K+218 512K+27K 3.3V, (ID:98 D3 94 BA 64 13 42)
+                 */
+                int bit23;
+
+                /* Calc pagesize, bit0,bit1: page size */
+                page_base = (1 << 10);  /* 1KB */
+                mtd->writesize = page_base * (1 << (id4th & BIT01));
+                block_base = (1 << 16); /* 64 KB */
+                /* Calc block size, bit4,bit5: block size */
+                erase_bits = (id4th >> 4) & BIT01; /* get bit4,bit5 */
+                mtd->erasesize = block_base * (1 << erase_bits);
+                /* Calc oobsize, use spare/redundant area bit */
+                bit23 = (id4th >> 2) & BIT01; /* get bit2,bit3 */
+                switch (bit23) {
+                case 0x01:
+                    mtd->oobsize = 128;
+                    break;
+                case 0x02:
+                    mtd->oobsize = 218;
+                    break;
+                default:
+                    /* others reserved */
+                    break;
+                }
+                /* Get buswidth information: x8 or x16 */
+                busw = ((id4th >> 6) & BIT(0)) ? NAND_BUSWIDTH_16 : 0;
+            }
+            else if (NAND_MFR_MICRON == *maf_id) {
+                /*
+                 * Micron
+                 * follow algorithm accordding to datasheets of:
+                 * 29F32G08CBAAA
+                 */
+                int spare_area_size_bit;
+
+                /* Calc pagesize, bit0,bit1: page size */
+                page_base = (1 << 10);  /* 1KB */
+                mtd->writesize = page_base * (1 << (id4th & 0x03));
+                block_base = (1 << 16); /* 64 KB */
+                /* Calc block size, bit4,bit5: block size */
+                erase_bits = (id4th >> 4) & BIT01; /* get bit4,bit5 */
+                mtd->erasesize = block_base * (1 << erase_bits);
+                /* Calc oobsize, use spare/redundant area bit */
+                spare_area_size_bit = (id4th >> 2) & BIT(0);
+                if (spare_area_size_bit) /* special oob */
+                    mtd->oobsize = 218;
+                else /* normal */
+                    mtd->oobsize = mtd->writesize / NAND_PAGE_OOB_RATIO;
+                /* Get buswidth information: x8 or x16 */
+                busw = ((id4th >> 6) & BIT(0)) ? NAND_BUSWIDTH_16 : 0;
+            }
+            else {
+                /*
+                 * Others
+                 * FIXME: update follow algrithm,
+                 * according to different manufacture's chip's datasheet
+                 */
+
+                goto slc_algorithm;
+            }       
+        }
+        else {
+            /*
+             * SLC, only has 4 bytes ID, further read will output periodically, such as:
+             * Hynix : HY27UG084G2M, only has 4 byte ID,
+             * following read ID is periodically same as the 1st ~ 4th byte,
+             * for HY27UG084G2M is : 0xAD 0xDC 0x80 0x15 0xAD 0xDC 0x80 0x15 ..... 
+            */
+slc_algorithm:
+            /* Calc pagesize, bit0,bit1: page size */
+            page_base = (1 << 10);  /* 1KB */
+            mtd->writesize = page_base * (1 << (id4th & BIT01));
+            block_base = (1 << 16); /* 64 KB */
+            /* Calc block size, bit4,bit5: block size */
+            erase_bits = (id4th >> 4) & BIT01; /* get bit4,bit5 */
+            mtd->erasesize = block_base * (1 << erase_bits);
+            /* Calc oobsize, use fixed ratio */
+            mtd->oobsize = mtd->writesize / NAND_PAGE_OOB_RATIO;
+            /* Get buswidth information: x8 or x16 */
+            busw = ((id4th >> 6) & BIT(0)) ? NAND_BUSWIDTH_16 : 0;
+        }
+    } else {
+        /*
+         * Old devices have chip data hardcoded in the device id table
+         */
+        mtd->erasesize = type->erasesize;
+        mtd->writesize = type->pagesize;
+        mtd->oobsize = mtd->writesize / NAND_PAGE_OOB_RATIO;
+        busw = type->options & NAND_BUSWIDTH_16;
+    }
+    
+    /*
+    * 以上内容，主要是更加不同厂家的nand flash的datasheet，一点点总结出来的算法。
+    * 最新的Linux的MTD部分，已经添加了类似如上部分的代码。此处贴出来，仅供参考。
+    */
+    
+    /*
+     * Check, if buswidth is correct. Hardware drivers should set
+     * chip correct !
+     */
+    if (busw != (chip->options & NAND_BUSWIDTH_16)) {
+        printk(KERN_INFO "NAND device: Manufacturer ID:"
+               " 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id,
+               dev_id, nand_manuf_ids[maf_idx].name, mtd->name);
+        printk(KERN_WARNING "NAND bus width %d instead %d bit\n",
+               (chip->options & NAND_BUSWIDTH_16) ? 16 : 8,
+               busw ? 16 : 8);
+        return ERR_PTR(-EINVAL);
+    }
+... ...
+}
+]]>
+            </programlisting>
+        </para>
+    </sect3>
+</sect2>
+
+<sect2 xml:id="read_op_hw_to_sw"><title>读操作的硬件到软件的映射</title>
+    <para>下面这部分主要介绍一下，关于硬件的设计和规范，是如何映射到具体的软件实现的，看了这部分内容之后，你对如何根据硬件的规范去用软件代码实现对应的功能，就有了大概的了解了，然后去实现对应的某硬件的驱动，就有了大概的脉络了。</para>
+    <para>关于硬件部分的细节，前面其实已经介绍过了，但是为了方便说明，此处还是以读操作为例去讲解硬件到软件是如何映射的。</para>
+    <para>再次贴出上面的那个图：</para>
+    <figure id="fg.nand_read_op_flow_2"><title>Nand Flash数据读取操作的时序图</title>
+        <mediaobject>
+            <imageobject role="html">
+                <imagedata fileref="images/nand_read_op_flow.png" align="left" scalefit="0" width="100%" />
+            </imageobject>
+            <imageobject role="fo">
+                <imagedata fileref="images/nand_read_op_flow.png" align="center" scalefit="1" width="100%"/>
+            </imageobject>
+        </mediaobject>
+    </figure>
+    <para>对于上面的从1到6，每个阶段所表示的含义，再简单解释一下：</para>
+    <orderedlist numeration="arabic">
+        <listitem id="fisrt_cycle">此阶段，是读命令第一个周期，发送的命令为0x00。</listitem>
+        <listitem id="second_cycle">此阶段，依次发送列地址，关于这些行地址，列地址等是如何计算出来的，后面的内容会有详细解释。</listitem>
+        <listitem id="third_cycle">此阶段是发送对应的行地址</listitem>
+        <listitem id="forth_cycle">此阶段是发送读命令第二周期2nd cycle所对应的命令，0x30</listitem>
+        <listitem id="fifth_cycle">此阶段是等待时间，等待Nand Flash硬件上准备好对应的数据，以便后续读出。</listitem>
+        <listitem id="sixth_cycle">此阶段，就是一点点地把所需要的数据读出来。</listitem>
+    </orderedlist>
+    <para>上面的是内容，说的是硬件是如何设计的，而这硬件的设计，即硬件的逻辑时序是如何规定的，对应的软件实现，也就要如何实现。不过可以看出的是，其中很多步骤，比如步骤1和步骤4，那都是固定的，而且，即使其中的步骤2和步骤3，即使是不同厂家和不同的Nand Flash芯片，除了要写入的列地址和行地址可能不同之外，也都是逻辑一样的，同样地，步骤5和6，也都是一样的，唯一不同的，是每家不同的Nand Flash控制器不同，所以具体到步骤6的时候，去读出数据的方式不同，所以，那一部分肯定是你要实现Nand Flash驱动的时候要自己实现的，而对应的其他几个公有的步骤呢，就有了Linux的MTD层帮你实现好了，所以，下面就来介绍一下，关于读取一个Nand Flash的页Page，Linux的MTD层，是如何具体的帮你实现的：</para>
+    <para>关于Nand Flash的读操作，即读取一页的数据，这样的读数据的操作，很明显，是从上层文件系统传递过来的，其细节我们在此忽略，但是要知道，上层读取数据的请求，传递到了MTD这一层，其入口是哪个函数，然后我们才能继续往下面分析细节。</para>
+    <para>关于下面所要的介绍的代码，如果没有明确指出，都是位于此文件：</para>
+    <para>代码位置：<filename>\drivers\mtd\nand\nand_base.c</filename></para>
+    <para>MTD读取数据的入口是nand_read，然后调用nand_do_read_ops，此函数主体如下：</para>
+    
+    <programlistingco>
+        <programlisting language="c">
+static int nand_do_read_ops(struct mtd_info *mtd, loff_t from, struct mtd_oob_ops *ops)
+{
+    ............
+    while(1) {
+        ......
+        chip-&gt;cmdfunc(mtd, NAND_CMD_READ0, 0x00, page); <co id="co.cmdfunc" linkends="co.note.cmdfunc"/>
+        ......
+        ret = chip-&gt;ecc.read_page(mtd, chip, bufpoi, <co id="co.read_page" linkends="co.note.read_page"/>
+        buf += bytes;
+        ......
+        readlen - = bytes;
+        if (! readlen)
+        break;
+        / * For subsequent reads align to page boundary. */
+        col = 0;
+        / * Increment page address */
+        realpage++;
+        page = realpage &amp; chip-&gt;pagemask;
+        ......
+        }
+    ......
+    }
+
+    ............
+    return mtd-&gt;ecc_stats.corrected - stats.corrected ? - EUCLEAN : 0;
+}
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.cmdfunc" arearefs="co.cmdfunc" >
+                <para>要读取数据，肯定是要先发送对应的读页（read page）的命令</para>
+            </callout>
+            <callout id="co.note.read_page"  arearefs="co.read_page">
+                <para>发送完命令，接着就可以去调用read_page函数读取对应的数据了</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+    
+    <para>对于上述<xref linkend="co.cmdfunc">cmdfunc</xref>中的函数cmdfunc，一般来说可以不用自己的驱动中实现，而直接使用MTD层提供的已有的函数，nand_command_lp，其细节如下：</para>
+    
+    <programlistingco>
+        <programlisting language="c">
+static void nand_command_lp(struct mtd_info *mtd, unsigned int command, int column, int page_addr)
+{
+    ......
+    / * Command latch cycle */
+    chip-&gt;cmd_ctrl(mtd, command &amp; 0xff, NAND_NCE | NAND_CLE | NAND_CTRL_CHANGE);<co id="co.1st_cycle" linkends="co.note.1st_cycle"/>
+
+    if (column ! = - 1 | | page_addr ! = - 1) {
+        int ctrl = NAND_CTRL_CHANGE | NAND_NCE | NAND_ALE;
+        / * Serially input address */
+        if (column ! = - 1) {
+            / * Adjust columns for 16 bit buswidth */
+            if (chip-&gt;options &amp; NAND_BUSWIDTH_16)
+            column &gt;&gt;= 1;
+            chip-&gt;cmd_ctrl(mtd, column, ctrl);<co id="co.2nd_cycle" linkends="co.note.2nd_cycle"/>
+            ctrl &amp;= ~NAND_CTRL_CHANGE;
+            chip-&gt;cmd_ctrl(mtd, column &gt;&gt; 8, ctrl);
+        }
+        if (page_addr ! = - 1) {
+            chip-&gt;cmd_ctrl(mtd, page_addr, ctrl);<co id="co.3rd_cycle" linkends="co.note.3rd_cycle"/>
+            chip-&gt;cmd_ctrl(mtd, page_addr &gt;&gt; 8, NAND_NCE | NAND_ALE);
+            / * One more address cycle for devices &gt; 128MiB */
+            if (chip-&gt;chipsize &gt; (128 &lt;&lt; 20))
+            chip-&gt;cmd_ctrl(mtd, page_addr &gt;&gt; 16, NAND_NCE | NAND_ALE);
+        }
+    }
+    chip-&gt;cmd_ctrl(mtd, NAND_CMD_NONE, NAND_NCE | NAND_CTRL_CHANGE);
+    / *
+    * program and erase have their own busy handlers
+    * status, sequential in, and deplete1 need no delay
+    */
+    switch (command) {
+        ......
+        case NAND_CMD_READ0:
+            chip-&gt;cmd_ctrl(mtd, NAND_CMD_READSTART, NAND_NCE | NAND_CLE | NAND_CTRL_CHANGE);<co id="co.4th_cycle" linkends="co.note.4th_cycle"/>
+            chip-&gt;cmd_ctrl(mtd, NAND_CMD_NONE, NAND_NCE | NAND_CTRL_CHANGE);
+            / * This applies to read commands */
+        default:
+        ......
+    }
+
+    / * Apply this short delay always to ensure that we do wait tWB in
+    * any case on any machine. */
+    /* */
+    ndelay(100);<co id="co.4th_wait" linkends="co.note.4th_wait"/>
+
+    nand_wait_ready(mtd);<co id="co.5th_cycle" linkends="co.note.5th_cycle"/>
+}
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.1st_cycle" arearefs="co.1st_cycle" >
+                <para>此处就是就是发送读命令的第一个周期1st Cycle的命令，即0x00，对应着上述时序图中的<xref linkend="fisrt_cycle" /></para>
+            </callout>
+            <callout id="co.note.2nd_cycle" arearefs="co.2nd_cycle">
+                <para>接下来是发送两个column，列地址，对应着上述时序图中的<xref linkend="second_cycle" /></para>
+            </callout>
+            <callout id="co.note.3rd_cycle" arearefs="co.3rd_cycle">
+                <para>然后发送三个row行地址，对应着上述时序图中的<xref linkend="third_cycle" /></para>
+            </callout>
+            <callout id="co.note.4th_cycle" arearefs="co.4th_cycle">
+                <para>接下来发送读命令的第二个周期2nd Cycle的命令，即0x30，对应着上述时序图中的<xref linkend="forth_cycle" /></para>
+            </callout>
+            <callout id="co.note.4th_wait" arearefs="co.4th_wait">
+                <para>此处是对应着上述时序图中<xref linkend="forth_cycle" />的tWB的等待时间</para>
+            </callout>
+            <callout id="co.note.5th_cycle" arearefs="co.5th_cycle">
+                <para>接下来就是要等待一定的时间，使得Nand Flash硬件上准备好数据，以供之后读取，即对应着时序图中的<xref linkend="fifth_cycle" /></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+    
+    <para>对于之前的<xref linkend="co.read_page" />的函数<function>read_page</function>，一般来说也可以不用自己的驱动中实现，而直接使用MTD层提供的已有的函数，<function>nand_read_page_hwecc</function>，该函数所要实现的功能，正是上面余下没介绍的<xref linkend="sixth_cycle" />，即一点点的读出我们要的数据：</para>
+
+    <programlistingco>
+        <programlisting language="c">
+static int nand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, uint8_t *buf, int page)
+{
+    ......
+    for (i = 0; eccsteps; eccsteps-- , i += eccbytes, p += eccsize) {
+        chip-&gt;ecc.hwctl(mtd, NAND_ECC_READ);
+
+        chip-&gt;read_buf(mtd, p, eccsize);<co id="co.real_read_data" linkends="co.note.real_read_data" />
+
+        chip-&gt;ecc.calculate(mtd, p, &amp;ecc_calc[i]);
+    }
+    ......
+}
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.real_read_data" arearefs="co.real_read_data" >
+                <para>真正的数据读取，就是下面这个read_buf函数了</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+    
+    <para>上面的read_buf，就是真正的去读取数据的函数了，由于不同的Nand Flash controller控制器所实现的方式不同，所以这个函数必须在你的Nand Flash驱动中实现，即MTD层，能帮我们实现的都实现了，不能实现的，那肯定要你的驱动自己实现。</para>
+    <para>对于我们这里的s3c2410的例子来说，就是<function>s3c2410_nand_read_buf</function>：</para>
+    <para>文件位置：<filename>\drivers\mtd\nand\s3c2410.c</filename></para>
+    
+    <programlistingco>
+        <programlisting language="c">
+static void s3c2410_nand_read_buf(struct mtd_info *mtd, u_char *buf, int len)
+{
+    struct nand_chip *this = mtd-&gt;priv;
+    readsb(this-&gt;IO_ADDR_R, buf, len);<co id="co.readsb" linkends="co.note.readsb" />
+}
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.readsb" arearefs="co.readsb" >
+                <para>真正的地址去读取数据</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+    <para>可以看出，此处的实现相当地的简单，就是读取对应的IO的地址，然后就可以把数据读出来就可以了。</para>
+    <para>不过，要注意的是，并不是所有的驱动都是这么简单，具体情况则是不同的Nand Flash控制器对应不同实现方法。</para>
+    <para>至此，关于整个的Nand Flash的读取一页的数据的操作，是如何将硬件的逻辑时序图，映射到对应的软件的实现的，就已经介绍完了。而看懂了这个过程，你才会更加明白，原来MTD层，已经帮助我们实现了很多很多通用的操作所对应的软件部分，而只需要我们实现剩下那些和具体硬件相关的操作的函数，就可以了，可以说大大减轻了驱动开发者的工作量。</para>
+    <para>因为，如果没了MTD层，那么上面那么多的函数，几乎都要我们自己实现，单单是代码量，就很庞大，而且再加上写完代码后的驱动测试功能是否正常，使得整个驱动开发，变得难的多得多。</para>
+</sect2>
+
+<sect2 xml:id="nand_driver_mechanism"><title>Nand flash驱动工作原理</title>
+    <para>在介绍具体如何写Nand Flash驱动之前，我们先要了解，大概的整个系统，和Nand Flash相关的部分的驱动工作流程，这样，对于后面的驱动实现，才能更加清楚机制，才更容易实现，否则就是，即使写完了代码，也还是没搞懂系统是如何工作的了。</para>
+    <para>让我们以最常见的，Linux内核中已经有的三星的Nand Flash驱动，来解释Nand Flash驱动具体流程和原理。</para>
+    <para>此处是参考2.6.29版本的Linux源码中的<filename>\drivers\mtd\nand\s3c2410.c</filename>，以2410为例。</para>
+    <para>在Nand Flash驱动加载后，第一步，就是去调用对应的<function>init</function>函数，<function>s3c2410_nand_init</function>,去将在Nand Flash驱动注册到Linux驱动框架中。</para>
+    <para>驱动本身，真正开始，是从probe函数，s3c2410_nand_probe-&gt;s3c24xx_nand_probe,</para>
+    <para>在probe过程中，去用<function>clk_enable</function>打开Nand Flash控制器的clock时钟，用<function>request_mem_region</function>去申请驱动所需要的一些内存等相关资源。然后，在<function>s3c2410_nand_inithw</function>中，去初始化硬件相关的部分，主要是关于时钟频率的计算，以及启用Nand Flash控制器，使得硬件初始化好了，后面才能正常工作。</para>
+    <para>需要多解释一下的，是这部分代码：</para>
+    
+    <programlistingco>
+        <programlisting language="c">
+	for (setno = 0; setno &lt; nr_sets; setno++, nmtd++) {
+		pr_debug("initialising set %d (%p, info %p)\n", setno, nmtd, info);
+		s3c2410_nand_init_chip(info, nmtd, sets);<co id="co.init_chip" linkends="co.note.init_chip" />
+		nmtd-&gt;scan_res = nand_scan_ident(&amp;nmtd-&gt;mtd,(sets) ? sets-&gt;nr_chips : 1);<co id="co.scan_ident" linkends="co.note.scan_ident" />
+
+		if (nmtd-&gt;scan_res == 0) {
+			s3c2410_nand_update_chip(info, nmtd);
+			nand_scan_tail(&amp;nmtd-&gt;mtd);<co id="co.scan_tail" linkends="co.note.scan_tail" />
+			s3c2410_nand_add_partition(info, nmtd, sets);<co id="co.add_partition" linkends="co.note.add_partition" />
+		}
+		if (sets != NULL)
+			sets++;
+	}
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.init_chip" arearefs="co.init_chip" >
+                <para>调用init chip去挂载你的nand 驱动的底层函数到Nand Flash的结构体中，以及设置对应的ecc mode，挂载ecc相关的函数</para>
+            </callout>
+            <callout id="co.note.scan_ident" arearefs="co.scan_ident" >
+                <para>scan_ident，扫描nand 设备，设置Nand Flash的默认函数，获得物理设备的具体型号以及对应各个特性参数，这部分算出来的一些值，对于Nand Flash来说，是最主要的参数，比如nand falsh的芯片的大小，块大小，页大小等。</para>
+            </callout>
+            <callout id="co.note.scan_tail" arearefs="co.scan_tail" >
+                <para>scan tail，从名字就可以看出来，是扫描的后一阶段，此时，经过前面的scan_ident，我们已经获得对应Nand Flash的硬件的各个参数，然后就可以在scan tail中，根据这些参数，去设置其他一些重要参数，尤其是ecc的layout，即ecc是如何在oob中摆放的，最后，再去进行一些初始化操作，主要是根据你的驱动，如果没有实现一些函数的话，那么就用系统默认的。</para>
+            </callout>
+            <callout id="co.note.add_partition" arearefs="co.add_partition" >
+                <para>add partion，根据你的Nand Flash的分区设置，去分区</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+    <para>等所有的参数都计算好了，函数都挂载完毕，系统就可以正常工作了。</para>
+    <para>上层访问你的nand falsh中的数据的时候，通过MTD层，一层层调用，最后调用到你所实现的那些底层访问硬件数据/缓存的函数中。</para>
+</sect2>
+
+</sect1>

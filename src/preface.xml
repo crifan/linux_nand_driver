@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE preface>
+
+<preface
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns:db="http://docbook.org/ns/docbook"
+    
+    xml:id="preface">
+<title>正文之前</title>
+<abstract></abstract>
+
+<section xml:id="purpose"><title>目的</title>
+    <para>本文的主要目的是，看了之后，你应该对Nand Flash的硬件特性以及对应的Linux下软件平台有了基本的认识，进一步地，对如何实现Linux下的Nand Flash的驱动，知道要做哪些事情了，以及大概是如何实现的。这样，如果有了对应的开发环境，你就可以自己去实现Nand Flash的驱动了。</para>
+    <para>不过额外提示一句的是，写出代码，并不代表你就完全搞懂了整个系统的流程。而且已经写好的代码，很可能有bug，要你不断地调试，通过调试，你才会对整个系统以及Nand Flash的方方面面有个更深入的了解的。</para>
+    <para>而且，你会发现，为了写驱动那点代码之前，却要弄懂太多的东西，包括硬件的工作原理，软件的协议规范，软件的逻辑架构等等，最后才能去实现你的驱动，所以有人会说，你写驱动不是很简单嘛，不就是写那几行代码吗，对此，一个经典的回答就是，对于整个写驱动的工作的价值算作100元的话，写代码值1块钱，但是知道怎么写，值99块钱。^_^</para>
+</section>
+
+<section xml:id="prerequisite"><title>目标读者和阅读此文的前提</title>
+    <para>正因为此文目的是让你搞懂如何在Linux下面实现Nand Flash的驱动，所以，目标读者就是，希望对Nand Flash硬件知识有一定了解，和想要在Linux下面实现Nand Flash驱动的读者。
+而阅读此文的前提，是要有一些基本的软硬件基础知识，和了解如何在v2.6内核之后Linux的下面开发驱动的流程。有了这些知识，再看本文，然后你才能清楚真正要去实现Nand Flash的驱动，是如何下手。</para>
+</section>
+
+<section xml:id="notation"><title>说明</title>
+    <para>本文的逻辑是，先介绍Nand Flash的一些基本的硬件知识，然后详细分析Nand Flash的Read操作的具体的流程，清楚硬件实现的逻辑，接着介绍软件平台，即Linux下面和Nand Flash相关的内容，这样，硬件和软件都清楚是怎么回事了，然后再介绍如何去在Linux的架构下，实现Nand Flash驱动。</para>
+    <para>之前写的版本，虽然前面关于Nand Flash的内容介绍的比较详细，但是后面关于相关的MTD知识，尤其是Linux的MTD的架构和如何实现具体的Nand的Flash的操作等部分的内容，写的很简略，导致有些读者看了后，觉得是，关于如何写驱动，和没说差不多，呵呵。</para>
+    <para>因此，现在继续更新，将更详细的解释，如何从硬件Nand Flash的规范，一步步映射到具体的软件实现的过程，这样，使得读者更明白其中的内在逻辑，然后接着再介绍如何在理解了软硬件各自的所具有的功能，以及Linux的MTD系统，已经帮你实现了哪些功能，然后才会更加明白，余下的要实现的软件部分，就是你所要实现的Linux下的Nand Flash的驱动部分了。</para>
+</section>
+
+<section xml:id="declaration"><title>声明</title>
+    <para>关于此贴版权问题，欢迎转载，但是希望注明联系方式，至少其他人看到被转帖的内容，如果有疑问，建议和意见，可以及时与笔者沟通：admin (at) crifan.com。</para>
+</section>
+
+</preface>

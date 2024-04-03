@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE chapter
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<chapter
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:mathml="http://www.w3.org/1998/Math/MathML"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns:db="http://docbook.org/ns/docbook"
+    
+    xml:id="ch02_nand_driver">
+
+<title>Linux下Nand Flash驱动编写步骤简介</title>
+<abstract>
+    <para>关于上面提到的，在nand_scan_tail的时候，系统会根据你的驱动，如果没有实现一些函数的话，那么就用系统默认的。如果实现了自己的函数，就用你的。</para>
+    <para>估计很多人就会问了，那么到底我要实现哪些函数呢，而又有哪些是可以不实现，用系统默认的就可以了呢。</para>
+    <para>此问题的，就是我们下面要介绍的，也就是，你要实现的，你的驱动最少要做哪些工作，才能使整个Nand Flash工作起来。</para>
+    <para></para>
+</abstract>
+
+<sect1 xml:id="driver_arch"><title>对于驱动框架部分</title>
+    <para>其实，要了解，关于驱动框架部分，你所要做的事情的话，只要看看三星的整个Nand Flash驱动中的这个结构体，就差不多了：</para>
+
+    <programlistingco>
+        <programlisting language="c">
+static struct platform_driver s3c2410_nand_driver = {
+	.probe<co id="co.probe" linkends="co.note.probe" />		= s3c2410_nand_probe,
+	.remove<co id="co.remove" linkends="co.note.remove" />		= s3c2410_nand_remove,
+	.suspend<co id="co.suspend" linkends="co.note.suspend" />	= s3c24xx_nand_suspend,
+	.resume<coref linkend="co.suspend" />		= s3c24xx_nand_resume,
+	.driver		= {
+		.name	= "s3c2410-nand",
+		.owner	= THIS_MODULE,
+	},
+};
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.probe" arearefs="co.probe" >
+                <para>probe就是系统“探测”，就是前面解释的整个过程，这个过程中的多数步骤，都是和你自己的Nand Flash相关的，尤其是那些硬件初始化部分，是你必须要自己实现的。</para>
+            </callout>
+            <callout id="co.note.remove" arearefs="co.remove" >
+                <para>remove，就是和probe对应的，“反初始化”相关的动作。主要是释放系统相关资源和关闭硬件的时钟等常见操作了。</para>
+            </callout>
+            <callout id="co.note.suspend" arearefs="co.suspend" >
+                <para>suspend和resume，对于很多没用到电源管理的情况下，至少对于我们刚开始写基本的驱动的时候，可以不用关心，放个空函数即可。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+    
+    <sect2><title>对于Nand Flash底层操作实现部分</title>
+        <para>而对于底层硬件操作的有些函数，总体上说，都可以在上面提到的<function>s3c2410_nand_init_chip</function>中找到：</para>
+
+        <programlistingco>
+            <programlisting language="c">
+
+static void s3c2410_nand_init_chip(struct s3c2410_nand_info *info,
+				   struct s3c2410_nand_mtd *nmtd,
+				   struct s3c2410_nand_set *set)
+{
+	struct nand_chip *chip = &amp;nmtd-&gt;chip;
+	void __iomem *regs = info-&gt;regs;
+
+	chip-&gt;write_buf    = <emphasis>s3c2410_nand_write_buf</emphasis>;<co id="co.rd_wr_buf" linkends="co.note.rd_wr_buf" />
+	chip-&gt;read_buf     = <emphasis>s3c2410_nand_read_buf</emphasis>;
+	chip-&gt;select_chip  = <emphasis>s3c2410_nand_select_chip</emphasis>;<co id="co.sel_chip" linkends="co.note.sel_chip" />
+	chip-&gt;chip_delay   = 50;
+	chip-&gt;priv	   = nmtd;
+	chip-&gt;options	   = 0;
+	chip-&gt;controller   = &amp;info-&gt;controller;
+
+	switch (info-&gt;cpu_type) {
+	case <emphasis>TYPE_S3C2410</emphasis>:<co id="co.nand_regs" linkends="co.note.nand_regs" />
+		chip-&gt;IO_ADDR_W = regs + S3C2410_NFDATA;
+		info-&gt;sel_reg   = regs + S3C2410_NFCONF;
+		info-&gt;sel_bit	= S3C2410_NFCONF_nFCE;
+		chip-&gt;cmd_ctrl  = <emphasis>s3c2410_nand_hwcontrol</emphasis>;<co id="co.hw_control" linkends="co.note.hw_control" />
+		chip-&gt;dev_ready = <emphasis>s3c2410_nand_devready</emphasis>;<co id="co.dev_rdy" linkends="co.note.dev_rdy" />
+		break;
+。。。。。。
+  	}
+
+	chip-&gt;IO_ADDR_R = chip-&gt;IO_ADDR_W;
+
+	nmtd-&gt;info	   = info;
+	nmtd-&gt;mtd.priv	   = chip;
+	nmtd-&gt;mtd.owner    = THIS_MODULE;
+	nmtd-&gt;set	   = set;
+
+	if (hardware_ecc) {
+		chip-&gt;ecc.calculate = <emphasis>s3c2410_nand_calculate_ecc</emphasis>;<co id="co.calc_ecc" linkends="co.note.calc_ecc" />
+		chip-&gt;ecc.correct   = <emphasis>s3c2410_nand_correct_data</emphasis>;<co id="co.correct_data" linkends="co.note.correct_data" />
+		chip-&gt;ecc.mode	    = <emphasis>NAND_ECC_HW</emphasis>;<co id="co.nand_hw_ecc" linkends="co.note.nand_hw_ecc" />
+
+		switch (info-&gt;cpu_type) {
+		case TYPE_S3C2410:
+			chip-&gt;ecc.hwctl	    = <emphasis>s3c2410_nand_enable_hwecc</emphasis>;<co id="co.ena_hw_ecc" linkends="co.note.ena_hw_ecc" />
+			chip-&gt;ecc.calculate = s3c2410_nand_calculate_ecc;
+			break;
+......
+		}
+	} else {
+		chip-&gt;ecc.mode	    = NAND_ECC_SOFT;
+	}
+
+	if (set-&gt;ecc_layout != NULL)
+		chip-&gt;ecc.layout = set-&gt;ecc_layout;
+
+	if (set-&gt;disable_ecc)
+		chip-&gt;ecc.mode	= NAND_ECC_NONE;
+}
+            </programlisting>
+            <calloutlist>
+                <callout id="co.note.rd_wr_buf" arearefs="co.rd_wr_buf" >
+                    <para>s3c2410_nand_write_buf 和 s3c2410_nand_read_buf：这是两个最基本的操作函数，其功能，就是往你的Nand Flash的控制器中的FIFO读写数据。一般情况下，是MTD上层的操作，比如要读取一页的数据，那么在发送完相关的读命令和等待时间之后，就会调用到你底层的read_buf，去Nand Flash的FIFO中，一点点把我们要的数据，读取出来，放到我们制定的内存的缓存中去。写操作也是类似，将我们内存中的数据，写到Nand Flash的FIFO中去。</para>
+                </callout>
+                <callout id="co.note.sel_chip" arearefs="co.sel_chip" >
+                    <para>s3c2410_nand_select_chip ： 实现Nand Flash的片选。</para>
+                </callout>
+                <callout id="co.note.nand_regs" arearefs="co.nand_regs" >
+                    <para>Nand Flash控制器中，一般都有对应的数据寄存器，用于给你往里面写数据，表示将要读取或写入多少个字节(byte,u8)/字(word,u32) ，所以，此处，你要给出地址，以便后面的操作所使用</para>
+                </callout>
+                <callout id="co.note.hw_control" arearefs="co.hw_control" >
+                    <para>s3c2410_nand_hwcontrol：给底层发送命令或地址，或者设置具体操作的模式，都是通过此函数。</para>
+                </callout>
+                <callout id="co.note.dev_rdy" arearefs="co.dev_rdy" >
+                    <para>s3c2410_nand_devready：Nand Flash的一些操作，比如读一页数据，写入（编程）一页数据，擦除一个块，都是需要一定时间的，在命发送完成后，就是硬件开始忙着工作的时候了，而硬件什么时候完成这些操作，什么时候不忙了，变就绪了，就是通过这个函数去检查状态的。</para>
+                    <para>一般具体实现都是去读硬件的一个状态寄存器，其中某一位是否是1，对应着是出于“就绪/不忙”还是“忙”的状态。这个寄存器，也就是我们前面分析时序图中的R/B#。</para>
+                </callout>
+                <callout id="co.note.calc_ecc" arearefs="co.calc_ecc" >
+                    <para>s3c2410_nand_calculate_ecc：如果是上面提到的硬件ECC的话，就不用我们用软件去实现校验算法了，而是直接去读取硬件产生的ECC数值就可以了。</para>
+                </callout>
+                <callout id="co.note.correct_data" arearefs="co.correct_data" >
+                    <para>s3c2410_nand_correct_data：当实际操作过程中，读取出来的数据所对应的硬件或软件计算出来的ECC，和从oob中读出来的ECC不一样的时候，就是说明数据有误了，就需要调用此函数去纠正错误。对于现在SLC常见的ECC算法来说，可以发现2位，纠正1位。如果错误大于1位，那么就无法纠正回来了。一般情况下，出错超过1位的，好像几率不大。至少我看到的不是很大。更复杂的情况和更加注重数据安全的情况下，一般是需要另外实现更高效和检错和纠错能力更强的ECC算法的。</para>
+                </callout>
+                <callout id="co.note.nand_hw_ecc" arearefs="co.nand_hw_ecc" >
+                    <para>此处，多数情况下，你所用的Nand Flash的控制器，都是支持硬件ECC的，所以，此处设置硬件ECC(HW_ECC) ，也是充分利用硬件的特性，而如果此处不用硬件去做的ECC的话，那么下面也会去设置成NAND_ECC_SOFT，系统会用默认的软件去做ECC校验，相比之下，比硬件ECC的效率就低很多，而你的Nand Flash的读写，也会相应地要慢不少</para>
+                </callout>
+                <callout id="co.note.ena_hw_ecc" arearefs="co.ena_hw_ecc" >
+                    <para>s3c2410_nand_enable_hwecc： 在硬件支持的前提下，前面设置了硬件ECC的话，要实现这个函数，用于每次在读写操作前，通过设置对应的硬件寄存器的某些位，使得启用硬件ECC，这样在读写操作完成后，就可以去读取硬件校验产生出来的ECC数值了。</para>
+                </callout>
+            </calloutlist>
+        </programlistingco>
+        <para>当然，除了这些你必须实现的函数之外，在你更加熟悉整个框架之后，你可以根据你自己的Nand Flash的特点，去实现其他一些原先用系统默认但是效率不高的函数，而用自己的更高效率的函数替代他们，以提升你的Nand Flash的整体性能和效率。</para>
+    </sect2>
+</sect1>
+
+</chapter>
